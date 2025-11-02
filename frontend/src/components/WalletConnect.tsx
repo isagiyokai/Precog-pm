@@ -7,7 +7,7 @@ import { toast } from 'sonner@2.0.3';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 
 export function WalletConnect() {
-  const { connecting, select, connect } = useWallet();
+  const { connecting, select, connect, connected, publicKey } = useWallet();
   const connectMetaMask = useCallback(async () => {
     try {
       // Basic EVM connect for MetaMask
@@ -35,6 +35,8 @@ export function WalletConnect() {
           <span className="inline-flex items-center gap-1">
             <RefreshCw className="w-3 h-3 animate-spin" /> Connecting...
           </span>
+        ) : connected && publicKey ? (
+          `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
         ) : (
           'Connect Wallet'
         )}
