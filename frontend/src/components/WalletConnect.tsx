@@ -27,24 +27,22 @@ export function WalletConnect() {
   }, []);
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="inline-flex items-stretch rounded-md overflow-hidden border">
       {/* Solana wallets (Phantom, Solflare, etc.) */}
-      <div className="relative">
-        <WalletMultiButton className="!bg-purple-600 hover:!bg-purple-700 !text-white">
-          <Wallet className="w-4 h-4 mr-1" />
-          {connecting ? (
-            <span className="inline-flex items-center gap-1">
-              <RefreshCw className="w-3 h-3 animate-spin" /> Connecting...
-            </span>
-          ) : (
-            'Connect Wallet'
-          )}
-        </WalletMultiButton>
-      </div>
-      {/* More menu */}
+      <WalletMultiButton className="!rounded-none !bg-purple-600 hover:!bg-purple-700 !text-white">
+        <Wallet className="w-4 h-4 mr-1" />
+        {connecting ? (
+          <span className="inline-flex items-center gap-1">
+            <RefreshCw className="w-3 h-3 animate-spin" /> Connecting...
+          </span>
+        ) : (
+          'Connect Wallet'
+        )}
+      </WalletMultiButton>
+      {/* Split-button dropdown for extra options (e.g., MetaMask) */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="icon" aria-label="More options">
+          <Button variant="outline" size="icon" aria-label="More options" className="!rounded-none border-l">
             <MoreHorizontal className="w-4 h-4" />
           </Button>
         </DropdownMenuTrigger>
