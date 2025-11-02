@@ -30,7 +30,7 @@ export const env: EnvConfig = {
   MXE_PROGRAM_ID: process.env.MXE_PROGRAM_ID || '',
   DATABASE_URL: process.env.DATABASE_URL,
   JWT_SECRET: process.env.JWT_SECRET,
-  CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://127.0.0.1:5173',
 };
 
 /**
@@ -42,6 +42,7 @@ export function validateEnv(): void {
     'PROGRAM_ID',
     'ARCIUM_API_KEY',
     'MXE_PROGRAM_ID',
+    'WALLET_KEYPAIR_PATH',
   ];
 
   const missing = required.filter(key => !process.env[key]);

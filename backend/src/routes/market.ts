@@ -18,7 +18,8 @@ router.post('/create', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const result = await createMarket(question, deadline, creatorPubkey);
+    const deadlineTs = typeof deadline === 'string' ? Math.floor(new Date(deadline).getTime() / 1000) : Number(deadline);
+    const result = await createMarket(question, deadlineTs, creatorPubkey);
     
     logger.info(`Market created: ${result.marketAddress}`);
     res.json({

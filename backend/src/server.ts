@@ -7,17 +7,19 @@ import { logger } from './utils/logger';
 import marketRoutes from './routes/market';
 import userRoutes from './routes/user';
 import indexRoutes from './routes/index';
+import { env, validateEnv } from './utils/env';
 
 // Load environment variables
 dotenv.config();
+validateEnv();
 
 const app: Application = express();
-const PORT = process.env.PORT || 5000;
+const PORT = env.PORT || 5000;
 
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: env.CORS_ORIGIN || 'http://127.0.0.1:5173',
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -47,9 +49,9 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 // Start server
 app.listen(PORT, () => {
   logger.info(`🚀 Server running on port ${PORT}`);
-  logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-  logger.info(`🔗 Solana RPC: ${process.env.RPC_URL}`);
-  logger.info(`🔐 Arcium Endpoint: ${process.env.ARCIUM_ENDPOINT}`);
+  logger.info(`📊 Environment: ${env.NODE_ENV}`);
+  logger.info(`🔗 Solana RPC: ${env.RPC_URL}`);
+  logger.info(`🔐 Arcium Endpoint: ${env.ARCIUM_ENDPOINT}`);
 });
 
 export default app;

@@ -1,8 +1,9 @@
 import { Connection, PublicKey, Keypair, Transaction } from '@solana/web3.js';
-import { AnchorProvider, Program, web3, BN } from '@coral-xyz/anchor';
-import { readFileSync } from 'fs';
+import { AnchorProvider, Program, web3, BN, Idl } from '@coral-xyz/anchor';
+import { readFileSync, existsSync } from 'fs';
 import { homedir } from 'os';
 import { logger } from '../utils/logger';
+import NodeWallet from '@coral-xyz/anchor/dist/cjs/nodewallet';
 
 // Load environment variables
 const RPC_URL = process.env.RPC_URL || 'https://api.devnet.solana.com';
@@ -11,6 +12,26 @@ const MXE_PROGRAM_ID = process.env.MXE_PROGRAM_ID || '';
 
 // Initialize connection
 const connection = new Connection(RPC_URL, 'confirmed');
+
+function resolveIdlPath(): string {
+  if (process.env.IDL_PATH && existsSync(process.env.IDL_PATH)) return process.env.IDL_PATH;
+  const paths = [
+    // common local build outputs
+    `${process.cwd()}${require('path').sep}target${require('path').sep}idl${require('path').sep}market_factory.json`,
+    `${process.cwd()}${require('path').sep}programs${require('path').sep}market_factory${require('path').sep}target${require('path').sep}idl${require('path').sep}market_factory.json`,
+    `${process.cwd()}${require('path').sep}backend${require('path').sep}src${require('path').sep}idl${require('path').sep}market_factory.json`,
+  ];
+  for (const p of paths) {
+    if (existsSync(p)) return p;
+  }
+  throw new Error('IDL not found. Set IDL_PATH env or run `anchor build` and ensure IDL is accessible.');
+}
+
+function loadIdl(): Idl {
+  const idlPath = resolveIdlPath();
+  const raw = readFileSync(idlPath, 'utf-8');
+  return JSON.parse(raw);
+}
 
 /**
  * Load wallet keypair from file
@@ -30,17 +51,16 @@ function loadWallet(): Keypair {
  * Get Anchor program instance
  */
 async function getProgram(): Promise<Program> {
-  const wallet = loadWallet();
+  const kp = loadWallet();
+  const wallet = new NodeWallet(kp);
   const provider = new AnchorProvider(
     connection,
-    wallet as any,
+    wallet,
     { commitment: 'confirmed' }
   );
 
-  // TODO: Load IDL from file or program
-  const idl: any = {}; // Replace with actual IDL
-  
-  return new Program(idl, new PublicKey(PROGRAM_ID), provider);
+  const idl = loadIdl();
+  return new Program(idl as Idl, new PublicKey(PROGRAM_ID), provider);
 }
 
 /**
@@ -100,7 +120,7 @@ export async function createMarket(
  */
 export async function placeBet(
   marketId: string,
-  encryptedBlob: Buffer,
+  encryptedBlob: Buffer | string,
   choice: number,
   stake: number,
   userPubkey: string
@@ -133,8 +153,9 @@ export async function placeBet(
     // TODO: Get user token account
     const userTokenAccount = new PublicKey('...'); // Replace with actual ATA derivation
 
+    const blob = typeof encryptedBlob === 'string' ? Buffer.from(encryptedBlob, 'hex') : encryptedBlob;
     const tx = await program.methods
-      .depositBet(Array.from(encryptedBlob), choice, new BN(stake))
+      .depositBet(Array.from(blob), choice, new BN(stake))
       .accounts({
         market,
         betLog: betLogPda,
