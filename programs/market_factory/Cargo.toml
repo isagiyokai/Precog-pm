@@ -1,0 +1,34 @@
+[package]
+name = "market_factory"
+version = "0.1.0"
+description = "Permissionless Private Prediction Market Factory"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "market_factory"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = "0.29.0"
+anchor-spl = "0.29.0"
+solana-program = "~1.17"
+
+[patch.crates-io]
+# Pin transitive dependencies to toolchain-compatible versions for SBF (rustc ~1.72)
+proc-macro-crate = "=1.3.1"
+toml_edit = "=0.19.15"
+toml_parser = "=0.19.14"
+toml_datetime = "=0.6.5"
+toml = "=0.7.8"
+indexmap = "=1.9.3"
+
+[dev-dependencies]
+solana-program-test = "~1.17"
+solana-sdk = "~1.17"

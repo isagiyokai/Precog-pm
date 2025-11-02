@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database (optional)
+  postgres:
+    image: postgres:15-alpine
+    container_name: precog-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: precog
+      POSTGRES_PASSWORD: precog_dev_password
+      POSTGRES_DB: precog_pm
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - precog-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: precog-backend
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgresql://precog:precog_dev_password@postgres:5432/precog_pm
+      RPC_URL: https://api.devnet.solana.com
+      PORT: 5000
+    env_file:
+      - ./backend/.env
+    ports:
+      - '5000:5000'
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - precog-network
+
+  # Frontend (Next.js)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: precog-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:5000
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - precog-network
+
+volumes:
+  postgres_data:
+
+networks:
+  precog-network:
+    driver: bridge

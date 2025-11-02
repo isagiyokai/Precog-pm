@@ -1,0 +1,75 @@
+// Prisma schema for Precog Prediction Market (Optional)
+// This is useful for caching market data, tracking jobs, and analytics
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Market {
+  id            String   @id @default(uuid())
+  address       String   @unique
+  creator       String
+  question      String
+  deadline      DateTime
+  mxeProgramId  String
+  totalPool     BigInt   @default(0)
+  state         String   @default("Open")
+  betCount      Int      @default(0)
+  resultHash    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  bets          Bet[]
+  jobs          ResolutionJob[]
+
+  @@index([creator])
+  @@index([state])
+}
+
+model Bet {
+  id            String   @id @default(uuid())
+  marketId      String
+  depositor     String
+  amount        BigInt
+  encryptedBlob Bytes
+  choiceHint    Int
+  timestamp     DateTime
+  txSignature   String?
+  createdAt     DateTime @default(now())
+
+  market        Market   @relation(fields: [marketId], references: [address])
+
+  @@index([marketId])
+  @@index([depositor])
+}
+
+model ResolutionJob {
+  id            String   @id @default(uuid())
+  marketId      String
+  arciumJobId   String?  @unique
+  status        String   @default("Pending")
+  result        Json?
+  error         String?
+  createdAt     DateTime @default(now())
+  completedAt   DateTime?
+
+  market        Market   @relation(fields: [marketId], references: [address])
+
+  @@index([marketId])
+  @@index([status])
+}
+
+model User {
+  id            String   @id @default(uuid())
+  pubkey        String   @unique
+  encryptionKey String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([pubkey])
+}
