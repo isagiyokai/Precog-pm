@@ -241,8 +241,8 @@ MIT
 
 ## 🏆 Built For
 
-Arcium Hackathon - Private, Permissionless Prediction Markets
-
+cypherpunk colloseum Hackathon - Private, Permissionless Prediction Markets
+                                 with heavy integration using Arcium
 ---
 
 **Note**: This is a hackathon prototype. Do not use in production without proper audits and security reviews.
