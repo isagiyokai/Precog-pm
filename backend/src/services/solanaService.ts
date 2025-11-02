@@ -20,7 +20,9 @@ const PROGRAM_ID = env.PROGRAM_ID;
 const MXE_PROGRAM_ID = env.MXE_PROGRAM_ID;
 
 // Initialize connection
-const finalRpcUrl = process.env.HELIUS_KEY ? `https://devnet.helius-rpc.com/?api-key=${process.env.HELIUS_KEY}` : RPC_URL;
+const finalRpcUrl = (env.USE_HELIUS && process.env.HELIUS_KEY)
+  ? `https://devnet.helius-rpc.com/?api-key=${process.env.HELIUS_KEY}`
+  : RPC_URL;
 const connection = new Connection(finalRpcUrl, 'confirmed');
 
 function resolveIdlPath(): string {
@@ -146,7 +148,8 @@ export async function placeBet(
   encryptedBlob: Buffer | string,
   choice: number,
   stake: number,
-  userPubkey: string
+  userPubkey: string,
+  mintParam?: string
 ): Promise<{ tx: string }> {
   try {
     const program = await getProgram();
@@ -173,8 +176,14 @@ export async function placeBet(
       program.programId
     );
 
-    // Use native wSOL mint for demo
-    const mint = NATIVE_MINT;
+    // Select mint (WSOL default or configured USDC)
+    let mint = NATIVE_MINT;
+    if (mintParam && mintParam.toUpperCase() === 'USDC' && env.USDC_MINT) {
+      mint = new PublicKey(env.USDC_MINT);
+    } else if (mintParam && mintParam !== 'WSOL' && mintParam !== 'SOL') {
+      // If a specific mint address was provided, use it
+      mint = new PublicKey(mintParam);
+    }
     const userTokenAccount = getAssociatedTokenAddressSync(mint, user, false, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
 
     const blob = typeof encryptedBlob === 'string' ? Buffer.from(encryptedBlob, 'hex') : encryptedBlob;
@@ -192,14 +201,25 @@ export async function placeBet(
       ),
     );
 
-    const lamports = BigInt(Math.floor(stake * LAMPORTS_PER_SOL));
-    ixs.push(
-      SystemProgram.transfer({ fromPubkey: user, toPubkey: userTokenAccount, lamports: Number(lamports) }),
-    );
-    ixs.push(createSyncNativeInstruction(userTokenAccount));
+    // Amount in base units
+    let baseAmount: bigint;
+    if (mint.equals(NATIVE_MINT)) {
+      const lamports = BigInt(Math.floor(stake * LAMPORTS_PER_SOL));
+      // Wrap SOL into wSOL ATA
+      ixs.push(SystemProgram.transfer({ fromPubkey: user, toPubkey: userTokenAccount, lamports: Number(lamports) }));
+      ixs.push(createSyncNativeInstruction(userTokenAccount));
+      baseAmount = lamports;
+    } else {
+      // Fetch decimals for SPL mint
+      const { getMint } = await import('@solana/spl-token');
+      const mintInfo = await getMint(connection, mint);
+      const factor = 10 ** mintInfo.decimals;
+      baseAmount = BigInt(Math.floor(stake * factor));
+      // Ensure ATA will be created (no wrap needed)
+    }
 
     const depositIx = await program.methods
-      .depositBet(Array.from(blob), choice, new BN(lamports.toString()))
+      .depositBet(Array.from(blob), choice, new BN(baseAmount.toString()))
       .accounts({
         market,
         betLog: betLogPda,

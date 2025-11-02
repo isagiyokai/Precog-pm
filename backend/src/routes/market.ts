@@ -40,7 +40,7 @@ router.post('/create', async (req: Request, res: Response) => {
 router.post('/:marketId/bet', async (req: Request, res: Response) => {
   try {
     const { marketId } = req.params;
-    const { choice, stake, userPubkey } = req.body;
+    const { choice, stake, userPubkey, mint } = req.body;
 
     if (!choice || !stake || !userPubkey) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -50,7 +50,7 @@ router.post('/:marketId/bet', async (req: Request, res: Response) => {
     const encryptedBlob = await encryptBetData({ marketId, choice, stake, userPubkey });
 
     // Submit to Solana
-    const result = await placeBet(marketId, encryptedBlob, choice, stake, userPubkey);
+    const result = await placeBet(marketId, encryptedBlob, choice, stake, userPubkey, mint);
 
     logger.info(`Bet tx built for market ${marketId} by ${userPubkey}`);
     res.json({

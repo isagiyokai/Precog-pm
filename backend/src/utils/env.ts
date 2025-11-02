@@ -14,6 +14,8 @@ interface EnvConfig {
   DATABASE_URL?: string;
   JWT_SECRET?: string;
   CORS_ORIGIN: string;
+  USE_HELIUS?: boolean;
+  USDC_MINT?: string;
 }
 
 /**
@@ -33,6 +35,8 @@ export const env: EnvConfig = {
   DATABASE_URL: process.env.DATABASE_URL,
   JWT_SECRET: process.env.JWT_SECRET,
   CORS_ORIGIN: s(process.env.CORS_ORIGIN, 'http://127.0.0.1:5173'),
+  USE_HELIUS: /^true$/i.test(s(process.env.USE_HELIUS, '')),
+  USDC_MINT: s(process.env.USDC_MINT, ''),
 };
 
 /**
