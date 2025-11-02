@@ -6,7 +6,7 @@ import { Button } from './ui/button';
 import { Lock, Clock, Users, Play } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { enqueueResolution } from '../lib/solana-client';
-import { getWalletState } from '../lib/wallet-mock';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { toast } from 'sonner@2.0.3';
 
 interface MarketCardProps {
@@ -17,6 +17,7 @@ interface MarketCardProps {
 
 export function MarketCard({ market, onClick, onStatusChange }: MarketCardProps) {
   const [enqueueing, setEnqueueing] = useState(false);
+  const { connected, publicKey } = useWallet();
 
   const getStatusColor = (status: Market['status']) => {
     switch (status) {
@@ -36,15 +37,14 @@ export function MarketCard({ market, onClick, onStatusChange }: MarketCardProps)
     setEnqueueing(true);
     
     try {
-      const wallet = getWalletState();
-      if (!wallet.connected || !wallet.publicKey) {
+      if (!connected || !publicKey) {
         toast.error('Please connect your wallet first');
         return;
       }
 
       const { jobId } = await enqueueResolution({
         marketId: market.id,
-        caller: wallet.publicKey
+        caller: publicKey.toBase58(),
       });
 
       toast.success(`Market enqueued for resolution! Job ID: ${jobId.slice(0, 12)}...`);

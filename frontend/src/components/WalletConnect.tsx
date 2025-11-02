@@ -1,62 +1,39 @@
-import { useState, useEffect } from 'react';
+import { useCallback } from 'react';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { Button } from './ui/button';
-import { Wallet, LogOut } from 'lucide-react';
-import { connectWallet, disconnectWallet, getWalletState } from '../lib/wallet-mock';
+import { Wallet } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 
 export function WalletConnect() {
-  const [wallet, setWallet] = useState(getWalletState());
-  const [connecting, setConnecting] = useState(false);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setWallet(getWalletState());
-    }, 500);
-    
-    return () => clearInterval(interval);
+  const connectMetaMask = useCallback(async () => {
+    try {
+      // Basic EVM connect for MetaMask
+      const eth = (window as any).ethereum;
+      if (!eth) {
+        toast.error('MetaMask not found');
+        return;
+      }
+      const accounts = await eth.request({ method: 'eth_requestAccounts' });
+      if (accounts && accounts[0]) {
+        const addr = accounts[0] as string;
+        toast.success(`MetaMask connected: ${addr.slice(0,6)}...${addr.slice(-4)}`);
+      }
+    } catch (e) {
+      toast.error('Failed to connect MetaMask');
+    }
   }, []);
 
-  const handleConnect = async () => {
-    setConnecting(true);
-    try {
-      const publicKey = await connectWallet();
-      toast.success(`Connected: ${publicKey}`);
-      setWallet(getWalletState());
-    } catch (error) {
-      toast.error('Failed to connect wallet');
-    } finally {
-      setConnecting(false);
-    }
-  };
-
-  const handleDisconnect = () => {
-    disconnectWallet();
-    setWallet(getWalletState());
-    toast.success('Wallet disconnected');
-  };
-
-  if (wallet.connected && wallet.publicKey) {
-    return (
-      <Button
-        variant="outline"
-        onClick={handleDisconnect}
-        className="gap-2"
-      >
-        <Wallet className="w-4 h-4" />
-        {wallet.publicKey}
-        <LogOut className="w-3 h-3 ml-1" />
-      </Button>
-    );
-  }
-
   return (
-    <Button
-      onClick={handleConnect}
-      disabled={connecting}
-      className="gap-2"
-    >
-      <Wallet className="w-4 h-4" />
-      {connecting ? 'Connecting...' : 'Connect Phantom'}
-    </Button>
+    <div className="flex items-center gap-2">
+      {/* Solana wallets (Phantom, Solflare, etc.) */}
+      <WalletMultiButton className="!bg-purple-600 hover:!bg-purple-700 !text-white">
+        <Wallet className="w-4 h-4 mr-1" />
+        Connect Wallet
+      </WalletMultiButton>
+      {/* Optional EVM wallet */}
+      <Button variant="outline" onClick={connectMetaMask} className="hidden sm:flex">
+        MetaMask
+      </Button>
+    </div>
   );
 }

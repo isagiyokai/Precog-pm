@@ -8,7 +8,7 @@ import { Progress } from './ui/progress';
 import { Lock, RefreshCw, CheckCircle2, Copy } from 'lucide-react';
 import { Market, BetChoice } from '../types';
 import { encryptBet, generateNonce } from '../lib/arcium-mock';
-import { getWalletState } from '../lib/wallet-mock';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { depositBet } from '../lib/solana-client';
 import { saveBetLocally } from '../lib/local-storage';
 import { copyToClipboard } from '../lib/clipboard';
@@ -25,6 +25,7 @@ type BetStep = 'input' | 'encrypting' | 'submitting' | 'success';
 
 export function PlaceBetDialog({ market, open, onOpenChange, onBetPlaced }: PlaceBetDialogProps) {
   const [step, setStep] = useState<BetStep>('input');
+  const { connected, publicKey } = useWallet();
   const [choice, setChoice] = useState<BetChoice>('Yes');
   const [amount, setAmount] = useState('');
   const [encryptedBlob, setEncryptedBlob] = useState('');
@@ -41,8 +42,7 @@ export function PlaceBetDialog({ market, open, onOpenChange, onBetPlaced }: Plac
       return;
     }
 
-    const wallet = getWalletState();
-    if (!wallet.connected || !wallet.publicKey) {
+    if (!connected || !publicKey) {
       toast.error('Please connect your wallet first');
       return;
     }
@@ -61,7 +61,7 @@ export function PlaceBetDialog({ market, open, onOpenChange, onBetPlaced }: Plac
         marketId: market.id,
         choice,
         stake: parseFloat(amount),
-        depositorPubkey: wallet.publicKey,
+        depositorPubkey: publicKey.toBase58(),
         nonce
       });
       
@@ -95,7 +95,7 @@ export function PlaceBetDialog({ market, open, onOpenChange, onBetPlaced }: Plac
         marketId: market.id,
         choice,
         amount: parseFloat(amount),
-        depositor: wallet.publicKey,
+        depositor: publicKey.toBase58(),
         timestamp: new Date(),
         encryptedBlob: blob,
         txHash: hash,

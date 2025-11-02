@@ -53,7 +53,7 @@ export default function App() {
               <div className="flex items-center gap-3">
                 <Shield className="w-8 h-8 text-purple-500" />
                 <div>
-                  <h1 className="text-xl">Arcium Markets</h1>
+                  <h1 className="text-xl">Precog Markets</h1>
                   <p className="text-xs text-muted-foreground">Predict. Protect. Prevail.</p>
                 </div>
               </div>

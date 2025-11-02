@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Plus, Lock, RefreshCw, Link2 } from 'lucide-react';
 import { ResolutionMechanism } from '../types';
 import { getMxeProgramId } from '../lib/arcium-mock';
-import { submitTransaction } from '../lib/wallet-mock';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { copyToClipboard } from '../lib/clipboard';
 import { toast } from 'sonner@2.0.3';
 
@@ -18,6 +18,7 @@ interface CreateMarketDialogProps {
 
 export function CreateMarketDialog({ onMarketCreated }: CreateMarketDialogProps) {
   const [open, setOpen] = useState(false);
+  const { connected, publicKey } = useWallet();
   const [loading, setLoading] = useState(false);
   const [created, setCreated] = useState(false);
   const [marketId, setMarketId] = useState('');
@@ -39,12 +40,14 @@ export function CreateMarketDialog({ onMarketCreated }: CreateMarketDialogProps)
     setLoading(true);
     
     try {
+      if (!connected || !publicKey) {
+        toast.error('Please connect your wallet first');
+        return;
+      }
       const mxeProgramId = getMxeProgramId();
-      const txHash = await submitTransaction('create_market', {
-        question: formData.question,
-        deadline: formData.deadline,
-        mxe_program_id: mxeProgramId
-      });
+      // simulate submit tx
+      await new Promise(res => setTimeout(res, 1000));
+      const txHash = Math.random().toString(16).slice(2);
       
       const newMarketId = `mkt_${Math.random().toString(36).substring(2, 9)}`;
       setMarketId(newMarketId);
