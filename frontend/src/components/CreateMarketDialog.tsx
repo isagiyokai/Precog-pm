@@ -45,11 +45,20 @@ export function CreateMarketDialog({ onMarketCreated }: CreateMarketDialogProps)
         return;
       }
       const mxeProgramId = getMxeProgramId();
-      // simulate submit tx
-      await new Promise(res => setTimeout(res, 1000));
-      const txHash = Math.random().toString(16).slice(2);
+      // call backend create
+      const res = await fetch('http://127.0.0.1:5000/api/markets/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: formData.question,
+          deadline: Math.floor(new Date(formData.deadline).getTime() / 1000),
+          creatorPubkey: publicKey!.toBase58(),
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const { marketAddress, signature } = await res.json();
       
-      const newMarketId = `mkt_${Math.random().toString(36).substring(2, 9)}`;
+      const newMarketId = marketAddress;
       setMarketId(newMarketId);
       setMxeLink(`arcium://mxe/${mxeProgramId}`);
       
@@ -63,7 +72,8 @@ export function CreateMarketDialog({ onMarketCreated }: CreateMarketDialogProps)
         resolutionMechanism: formData.resolutionMechanism,
         mxeProgramId: mxeProgramId,
         createdAt: new Date(),
-        creator: 'You'
+        creator: publicKey!.toBase58(),
+        signature,
       };
       
       onMarketCreated(newMarket);

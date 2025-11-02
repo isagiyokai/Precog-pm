@@ -4,14 +4,16 @@ import { readFileSync, existsSync } from 'fs';
 import { homedir } from 'os';
 import { logger } from '../utils/logger';
 import NodeWallet from '@coral-xyz/anchor/dist/cjs/nodewallet';
+import { env } from '../utils/env';
 
 // Load environment variables
-const RPC_URL = process.env.RPC_URL || 'https://api.devnet.solana.com';
-const PROGRAM_ID = process.env.PROGRAM_ID || '';
-const MXE_PROGRAM_ID = process.env.MXE_PROGRAM_ID || '';
+const RPC_URL = env.RPC_URL;
+const PROGRAM_ID = env.PROGRAM_ID;
+const MXE_PROGRAM_ID = env.MXE_PROGRAM_ID;
 
 // Initialize connection
-const connection = new Connection(RPC_URL, 'confirmed');
+const finalRpcUrl = process.env.HELIUS_KEY ? `https://devnet.helius-rpc.com/?api-key=${process.env.HELIUS_KEY}` : RPC_URL;
+const connection = new Connection(finalRpcUrl, 'confirmed');
 
 function resolveIdlPath(): string {
   if (process.env.IDL_PATH && existsSync(process.env.IDL_PATH)) return process.env.IDL_PATH;
@@ -90,7 +92,8 @@ export async function createMarket(
     // TODO: Add token mint parameter
     const tokenMint = new PublicKey('So11111111111111111111111111111111111111112'); // SOL mint
 
-    const tx = await program.methods
+    // Build instruction
+    const ix = await program.methods
       .createMarket(question, new BN(deadline), new PublicKey(MXE_PROGRAM_ID))
       .accounts({
         market: marketPda,
@@ -101,13 +104,25 @@ export async function createMarket(
         tokenProgram: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
         rent: web3.SYSVAR_RENT_PUBKEY,
       })
-      .rpc();
+      .instruction();
+
+    // Use latest blockhash to avoid recentBlockhash RPC issues
+    const latest = await connection.getLatestBlockhash('confirmed');
+    const tx = new web3.Transaction({
+      feePayer: (program.provider as AnchorProvider).wallet.publicKey,
+      recentBlockhash: latest.blockhash,
+    }).add(ix);
+
+    const sig = await (program.provider as AnchorProvider).sendAndConfirm(tx, [], {
+      skipPreflight: false,
+      commitment: 'confirmed',
+    });
 
     logger.info(`Market created: ${marketPda.toString()}`);
     
     return {
       marketAddress: marketPda.toString(),
-      signature: tx
+      signature: sig
     };
   } catch (error: any) {
     logger.error(`Solana create market error: ${error.message}`);

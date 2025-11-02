@@ -19,18 +19,20 @@ interface EnvConfig {
 /**
  * Validate and export environment variables
  */
+const s = (v?: string, d: string = '') => (v ?? d).trim();
+
 export const env: EnvConfig = {
-  PORT: parseInt(process.env.PORT || '5000', 10),
-  NODE_ENV: process.env.NODE_ENV || 'development',
-  RPC_URL: process.env.RPC_URL || 'https://api.devnet.solana.com',
-  PROGRAM_ID: process.env.PROGRAM_ID || '',
-  WALLET_KEYPAIR_PATH: process.env.WALLET_KEYPAIR_PATH || '~/.config/solana/id.json',
-  ARCIUM_API_KEY: process.env.ARCIUM_API_KEY || '',
-  ARCIUM_ENDPOINT: process.env.ARCIUM_ENDPOINT || 'https://testnet.api.arcium.com',
-  MXE_PROGRAM_ID: process.env.MXE_PROGRAM_ID || '',
+  PORT: parseInt(s(process.env.PORT, '5000'), 10),
+  NODE_ENV: s(process.env.NODE_ENV, 'development'),
+  RPC_URL: s(process.env.RPC_URL, 'https://api.devnet.solana.com'),
+  PROGRAM_ID: s(process.env.PROGRAM_ID),
+  WALLET_KEYPAIR_PATH: s(process.env.WALLET_KEYPAIR_PATH, '~/.config/solana/id.json'),
+  ARCIUM_API_KEY: s(process.env.ARCIUM_API_KEY),
+  ARCIUM_ENDPOINT: s(process.env.ARCIUM_ENDPOINT, 'https://testnet.api.arcium.com'),
+  MXE_PROGRAM_ID: s(process.env.MXE_PROGRAM_ID),
   DATABASE_URL: process.env.DATABASE_URL,
   JWT_SECRET: process.env.JWT_SECRET,
-  CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://127.0.0.1:5173',
+  CORS_ORIGIN: s(process.env.CORS_ORIGIN, 'http://127.0.0.1:5173'),
 };
 
 /**

@@ -81,8 +81,9 @@ export function PlaceBetDialog({ market, open, onOpenChange, onBetPlaced }: Plac
       
       const hash = await depositBet({
         marketId: market.id,
-        encryptedBlob: blob,
-        amount: parseFloat(amount)
+        amount: parseFloat(amount),
+        userPubkey: publicKey.toBase58(),
+        choice: choice === 'Yes' ? 1 : 0,
       });
       
       clearInterval(submitProgressInterval);

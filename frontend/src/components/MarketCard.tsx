@@ -47,7 +47,7 @@ export function MarketCard({ market, onClick, onStatusChange }: MarketCardProps)
         caller: publicKey.toBase58(),
       });
 
-      toast.success(`Market enqueued for resolution! Job ID: ${jobId.slice(0, 12)}...`);
+      toast.success(`Enqueue requested! Job ID: ${jobId?.slice(0, 12) || 'pending'}...`);
       
       // Trigger status change if callback provided
       if (onStatusChange) {

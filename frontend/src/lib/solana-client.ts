@@ -1,11 +1,11 @@
 /**
- * Mock Solana/Anchor program client
- * In production, this would use @solana/web3.js and @project-serum/anchor
+ * Client helpers that talk to the backend API.
  */
+const BASE_URL = (typeof window !== 'undefined' && (window as any).__PREC0G_API__) || (import.meta as any).env?.VITE_API_URL || 'http://127.0.0.1:5000';
 
 export interface DepositBetParams {
   marketId: string;
-  encryptedBlob: string;
+  encryptedBlob?: string; // not required client-side; backend encrypts
   amount: number;
 }
 
@@ -21,58 +21,32 @@ export interface EnqueueResolutionParams {
 }
 
 /**
- * Simulate depositing an encrypted bet to escrow
- * In production: calls anchor program's deposit_bet instruction
+ * Place bet via backend (backend handles encryption + on-chain tx)
  */
-export async function depositBet(params: DepositBetParams): Promise<string> {
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  // Generate mock transaction signature
-  const txSig = generateTxSignature();
-  
-  console.log('[Solana] Deposit bet tx:', {
-    ...params,
-    txSignature: txSig,
-    escrowPDA: findEscrowPDA(params.marketId)
+export async function depositBet(params: DepositBetParams & { userPubkey?: string; choice?: number }): Promise<string> {
+  const { marketId, amount } = params;
+  const choice = params.choice ?? 1; // default Yes
+  const userPubkey = params.userPubkey || '';
+
+  const res = await fetch(`${BASE_URL}/api/markets/${marketId}/bet`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ choice, stake: amount, userPubkey }),
   });
-  
-  return txSig;
+  if (!res.ok) throw new Error(await res.text());
+  const data = await res.json();
+  return data.signature;
 }
 
 /**
- * Simulate settling a market with MXE-signed result
- * In production: calls anchor program's settle_market instruction
- */
-export async function settleMarket(params: SettleMarketParams): Promise<string> {
-  await new Promise(resolve => setTimeout(resolve, 2500));
-  
-  const txSig = generateTxSignature();
-  
-  console.log('[Solana] Settle market tx:', {
-    ...params,
-    txSignature: txSig
-  });
-  
-  return txSig;
-}
-
-/**
- * Simulate enqueueing market for resolution
- * In production: triggers backend to create Arcium MXE job
+ * Enqueue resolution via backend
  */
 export async function enqueueResolution(params: EnqueueResolutionParams): Promise<{ jobId: string }> {
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  
-  const jobId = `job_${generateRandomHex(16)}`;
-  
-  console.log('[Arcium] Enqueued MXE job:', {
-    ...params,
-    jobId,
-    mxeEndpoint: 'https://api.arcium.com/v1/jobs'
+  const res = await fetch(`${BASE_URL}/api/markets/${params.marketId}/resolve`, {
+    method: 'POST',
   });
-  
-  return { jobId };
+  if (!res.ok) throw new Error(await res.text());
+  return await res.json();
 }
 
 /**
@@ -84,7 +58,7 @@ export function findEscrowPDA(marketId: string): string {
 }
 
 /**
- * Generate a mock Solana transaction signature
+ * Generate a mock Solana transaction signature (fallback)
  */
 function generateTxSignature(): string {
   return Array.from({ length: 88 }, () => {
