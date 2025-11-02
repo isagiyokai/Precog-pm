@@ -52,11 +52,10 @@ router.post('/:marketId/bet', async (req: Request, res: Response) => {
     // Submit to Solana
     const result = await placeBet(marketId, encryptedBlob, choice, stake, userPubkey);
 
-    logger.info(`Bet placed on market ${marketId} by ${userPubkey}`);
+    logger.info(`Bet tx built for market ${marketId} by ${userPubkey}`);
     res.json({
       success: true,
-      betId: result.betId,
-      signature: result.signature
+      tx: result.tx
     });
   } catch (error: any) {
     logger.error(`Error placing bet: ${error.message}`);

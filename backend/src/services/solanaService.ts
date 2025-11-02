@@ -1,10 +1,18 @@
-import { Connection, PublicKey, Keypair, Transaction } from '@solana/web3.js';
+import { Connection, PublicKey, Keypair, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { AnchorProvider, Program, web3, BN, Idl } from '@coral-xyz/anchor';
 import { readFileSync, existsSync } from 'fs';
 import { homedir } from 'os';
 import { logger } from '../utils/logger';
 import NodeWallet from '@coral-xyz/anchor/dist/cjs/nodewallet';
 import { env } from '../utils/env';
+import {
+  getAssociatedTokenAddressSync,
+  createAssociatedTokenAccountIdempotentInstruction,
+  createSyncNativeInstruction,
+  NATIVE_MINT,
+  TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+} from '@solana/spl-token';
 
 // Load environment variables
 const RPC_URL = env.RPC_URL;
@@ -139,7 +147,7 @@ export async function placeBet(
   choice: number,
   stake: number,
   userPubkey: string
-): Promise<{ betId: string; signature: string }> {
+): Promise<{ tx: string }> {
   try {
     const program = await getProgram();
     const market = new PublicKey(marketId);
@@ -165,29 +173,53 @@ export async function placeBet(
       program.programId
     );
 
-    // TODO: Get user token account
-    const userTokenAccount = new PublicKey('...'); // Replace with actual ATA derivation
+    // Use native wSOL mint for demo
+    const mint = NATIVE_MINT;
+    const userTokenAccount = getAssociatedTokenAddressSync(mint, user, false, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
 
     const blob = typeof encryptedBlob === 'string' ? Buffer.from(encryptedBlob, 'hex') : encryptedBlob;
-    const tx = await program.methods
-      .depositBet(Array.from(blob), choice, new BN(stake))
+
+    // Build instructions: ensure ATA exists, wrap SOL, sync native, then deposit
+    const ixs: web3.TransactionInstruction[] = [];
+    ixs.push(
+      createAssociatedTokenAccountIdempotentInstruction(
+        user, // payer
+        userTokenAccount,
+        user, // owner
+        mint,
+        TOKEN_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID,
+      ),
+    );
+
+    const lamports = BigInt(Math.floor(stake * LAMPORTS_PER_SOL));
+    ixs.push(
+      SystemProgram.transfer({ fromPubkey: user, toPubkey: userTokenAccount, lamports: Number(lamports) }),
+    );
+    ixs.push(createSyncNativeInstruction(userTokenAccount));
+
+    const depositIx = await program.methods
+      .depositBet(Array.from(blob), choice, new BN(lamports.toString()))
       .accounts({
         market,
         betLog: betLogPda,
         escrowVault: escrowPda,
         userTokenAccount,
         user,
-        tokenProgram: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
+        tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: web3.SystemProgram.programId,
       })
-      .rpc();
+      .instruction();
+    ixs.push(depositIx);
 
-    logger.info(`Bet placed: ${betLogPda.toString()}`);
-    
-    return {
-      betId: betLogPda.toString(),
-      signature: tx
-    };
+    // Build unsigned tx for client to sign (user must sign)
+    const latest = await connection.getLatestBlockhash('confirmed');
+    const tx = new Transaction({ feePayer: user, recentBlockhash: latest.blockhash });
+    for (const ix of ixs) tx.add(ix);
+
+    const serialized = tx.serialize({ requireAllSignatures: false, verifySignatures: false }).toString('base64');
+
+    return { tx: serialized };
   } catch (error: any) {
     logger.error(`Solana place bet error: ${error.message}`);
     throw error;

@@ -79,16 +79,33 @@ export function PlaceBetDialog({ market, open, onOpenChange, onBetPlaced }: Plac
         setProgress(p => Math.min(p + 8, 90));
       }, 200);
       
-      const hash = await depositBet({
-        marketId: market.id,
-        amount: parseFloat(amount),
-        userPubkey: publicKey.toBase58(),
-        choice: choice === 'Yes' ? 1 : 0,
+      const res = await fetch(`http://127.0.0.1:5000/api/markets/${market.id}/bet`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          choice: choice === 'Yes' ? 1 : 0,
+          stake: parseFloat(amount),
+          userPubkey: publicKey.toBase58(),
+        }),
       });
+      if (!res.ok) throw new Error(await res.text());
+      const { tx } = await res.json();
+
+      // Sign & send
+      const { connection } = await import('@solana/wallet-adapter-react'); // dynamic import not ideal; assumes provider
+      // @ts-ignore - connection available via wallet adapter hooks in app
+      const conn = (window as any).__SOL_CONN__ || new (await import('@solana/web3.js')).Connection('https://api.devnet.solana.com', 'confirmed');
+      const { Transaction } = await import('@solana/web3.js');
+      const txObj = Transaction.from(Buffer.from(tx, 'base64'));
+      const sig = await (window as any).solana?.signAndSendTransaction ? (await (window as any).solana.signAndSendTransaction(txObj)).signature : await (async () => {
+        // Fallback for wallet adapter
+        // @ts-ignore
+        return await (await import('@solana/wallet-adapter-base')).sendTransaction(txObj, conn);
+      })();
       
       clearInterval(submitProgressInterval);
       setProgress(100);
-      setTxHash(hash);
+      setTxHash(sig as string);
       
       // Create bet record
       const newBet = {
