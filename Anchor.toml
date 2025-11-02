@@ -6,10 +6,10 @@ seeds = false
 skip-lint = false
 
 [programs.devnet]
-market_factory = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+market_factory = "9EnJdXf861nSXfaJ4YFQgXzXSxjHM72523oF1nic4hnR"
 
 [programs.localnet]
-market_factory = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+market_factory = "9EnJdXf861nSXfaJ4YFQgXzXSxjHM72523oF1nic4hnR"
 
 [registry]
 url = "https://api.apr.dev"
