@@ -7,7 +7,7 @@ import { toast } from 'sonner@2.0.3';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 
 export function WalletConnect() {
-  const { connecting, select, connect, connected, publicKey } = useWallet();
+  const { connecting, select, connect, disconnect, connected, publicKey } = useWallet();
   const connectMetaMask = useCallback(async () => {
     try {
       // Basic EVM connect for MetaMask
@@ -49,8 +49,15 @@ export function WalletConnect() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={async () => { try { select('Phantom'); await connect(); } catch { /* swallow */ } }}>Connect Phantom (direct)</DropdownMenuItem>
-          <DropdownMenuItem onClick={connectMetaMask}>Connect MetaMask</DropdownMenuItem>
+          {!connected && (
+            <>
+              <DropdownMenuItem onClick={async () => { try { select('Phantom'); await connect(); } catch { /* swallow */ } }}>Connect Phantom</DropdownMenuItem>
+              <DropdownMenuItem onClick={connectMetaMask}>Connect MetaMask</DropdownMenuItem>
+            </>
+          )}
+          {connected && (
+            <DropdownMenuItem onClick={() => disconnect()}>Disconnect Wallet</DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
