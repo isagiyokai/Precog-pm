@@ -5,6 +5,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Lock, RefreshCw, CheckCircle2, Copy } from 'lucide-react';
 import { Market, BetChoice } from '../types';
 import { encryptBet, generateNonce } from '../lib/arcium-mock';
@@ -28,6 +29,7 @@ export function PlaceBetDialog({ market, open, onOpenChange, onBetPlaced }: Plac
   const { connected, publicKey } = useWallet();
   const [choice, setChoice] = useState<BetChoice>('Yes');
   const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState<'WSOL' | 'USDC'>('WSOL');
   const [encryptedBlob, setEncryptedBlob] = useState('');
   const [txHash, setTxHash] = useState('');
   const [progress, setProgress] = useState(0);
@@ -86,6 +88,7 @@ export function PlaceBetDialog({ market, open, onOpenChange, onBetPlaced }: Plac
           choice: choice === 'Yes' ? 1 : 0,
           stake: parseFloat(amount),
           userPubkey: publicKey.toBase58(),
+          mint: currency,
         }),
       });
       if (!res.ok) throw new Error(await res.text());
@@ -194,7 +197,20 @@ export function PlaceBetDialog({ market, open, onOpenChange, onBetPlaced }: Plac
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="amount">Amount (USDC)</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="amount">Amount ({currency})</Label>
+                <div className="w-40">
+                  <Select value={currency} onValueChange={(v) => setCurrency(v as 'WSOL' | 'USDC')}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="WSOL">WSOL</SelectItem>
+                      <SelectItem value="USDC">USDC</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
               <Input
                 id="amount"
                 type="number"
